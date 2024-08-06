@@ -1,20 +1,63 @@
 #include <SDL.h>
 #undef main
+#include <SDL_mixer.h>
 #include <iostream>
 #include <random>
 #include <algorithm>
+#include <math.h>
 
 #define MIN_VAL 1
 #define MAX_VAL 99
 #define COUNT 100
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
-#define DELAY_TIME 5
+#define DELAY_TIME 10
+#define AMP 28000
+#define SAMPLE_RATE 44100
+#define MAX_FREQ 1500
+#define MIN_FREQ 100
+
+
+void audio_callback(void* userdata, Uint8* stream, int len); /*{
+	Sint16* buffer = (Sint16*)stream;
+	int length = len / 2;
+	TriangleWave* waves = (TriangleWave*)userdata;
+
+	for (int i = 0; i < length; i++) {
+		int sample = 0;
+		for (int j = 0; j < 2; j++) {
+			double value = (2.0 * waves[j])
+		}
+	}
+}*/
+
+
+float triangle_wave(float t, float frequency) {
+	float period = 1.0f / frequency;
+	float value = 4.0f * fabs(fmod(t, period) - period / 2) / period - 1.0f;
+	return value;
+}
+
+
+void play_sound(SDL_AudioDeviceID audio_dev, SDL_AudioSpec wav_spec, int b, int r, int delay = DELAY_TIME) {
+	int duration_ms = delay;
+	int sample_count = (wav_spec.freq * duration_ms) / 1000;
+
+	std::vector<int16_t> samples(sample_count);
+
+	for (int i = 0; i < sample_count; ++i) {
+		float t = static_cast<float>(i) / wav_spec.freq;
+		float sample1 = static_cast<float>(triangle_wave(t, 1500 * (static_cast<double>(b) / MAX_VAL)));
+		float sample2 = static_cast<float>(triangle_wave(t, 1500 * (static_cast<double>(r) / MAX_VAL)));
+		samples[i] = 5000*(sample1 + sample2)/2;
+	}
+	SDL_QueueAudio(audio_dev, samples.data(), samples.size() * sizeof(int16_t));
+	SDL_PauseAudioDevice(audio_dev, 0);
+}
 
 void draw_state(std::vector<int>& v, SDL_Renderer* renderer, int b, int r) {
 	// current idx should be blue, idx being compared to is red
 	int idx = 0;
-	//int step_size =  
 	for (auto i : v) {
 		if (idx == b) { SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255); }
 		else if (idx == r) {SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);}
@@ -41,15 +84,18 @@ void draw(std::vector<int>& v, SDL_Renderer* renderer, int b, int r, int delay =
 
 }
 
-void pass_over(std::vector<int>& v, SDL_Renderer* renderer) {
+void pass_over(std::vector<int>& v, SDL_Renderer* renderer, SDL_AudioDeviceID audio_dev, SDL_AudioSpec wav_spec) {
 	for (int i = 1; i < COUNT; i++) {
-		draw(v, renderer, i, i + 1, 5);
+		draw(v, renderer, i, i + 1, 10);
+		play_sound(audio_dev, wav_spec, i, i + 1);
 	}
 	for (int i = 1; i < COUNT; i++) {
-		draw(v, renderer, i, i + 1, 5);
+		draw(v, renderer, i, i + 1, 20);
+		play_sound(audio_dev, wav_spec, i, i + 1, 20);
 	}
 	for (int i = 1; i < COUNT; i++) {
-		draw(v, renderer, i, i + 1, 5);
+		draw(v, renderer, i, i + 1, 30);
+		play_sound(audio_dev, wav_spec, i, i + 1, 30);
 	}
 	draw(v, renderer, MAX_VAL+1, MAX_VAL+1);
 
@@ -62,6 +108,21 @@ int main() {
 	std::vector<int> v;
 	
 	bool running = true;
+
+	// init audio setup
+	if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+		std::cerr << "SDL_Init Error : " << SDL_GetError() << std::endl;
+	}
+
+	SDL_AudioSpec wav_spec;
+	SDL_zero(wav_spec);
+	wav_spec.freq = SAMPLE_RATE;
+	wav_spec.format = AUDIO_S16SYS;
+	wav_spec.channels = 1;
+	wav_spec.samples = 4096;
+	wav_spec.callback = NULL; //audio_callback;
+
+	SDL_AudioDeviceID audio_dev = SDL_OpenAudioDevice(NULL, 0, &wav_spec, NULL, 0);
 
 	// generate vec
 	for (int i = 0; i < COUNT; i++) {
@@ -80,7 +141,7 @@ int main() {
 	SDL_CreateWindowAndRenderer(WINDOW_WIDTH, WINDOW_HEIGHT, 0, &window, &renderer);
 	SDL_RenderSetScale(renderer, WINDOW_WIDTH / COUNT, WINDOW_HEIGHT / MAX_VAL); // throw error if we end up doing subpixel division
 	//SDL_RenderSetLogicalSize(renderer, COUNT, MAX_VAL);
-	
+	//play_sound(audio_dev, wav_spec, 90, 90);
 
 	// insertion sort
 	for (int i = 1; i < COUNT; i++) {
@@ -88,6 +149,7 @@ int main() {
 		int j = i - 1;
 		while (j >= 0 && val < v[j]) {
 			v[j + 1] = v[j];
+			play_sound(audio_dev, wav_spec, v[j], v[j+1]);
 			draw(v, renderer, j, j+1);
 			j = j - 1;
 			
@@ -97,7 +159,7 @@ int main() {
 	}
 
 	// do the funny pass over thing
-	pass_over(v, renderer);
+	pass_over(v, renderer, audio_dev, wav_spec);
 
 	SDL_Event event;
 	while (running) {
@@ -126,7 +188,7 @@ int main() {
 		std::cout << i << ' ';
 	}
 	std::cout << std::endl;
-	
+	SDL_CloseAudioDevice(audio_dev);
 	//Quit SDL
 	SDL_Quit();
 
