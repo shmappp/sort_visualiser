@@ -28,7 +28,7 @@ void draw_state(std::vector<int>& v, SDL_Renderer* renderer, int b, int r) {
 	}
 }
 
-void draw(std::vector<int>& v, SDL_Renderer* renderer, int b, int r) {
+void draw(std::vector<int>& v, SDL_Renderer* renderer, int b, int r, int delay = DELAY_TIME) {
 	// clear screen
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
@@ -37,7 +37,21 @@ void draw(std::vector<int>& v, SDL_Renderer* renderer, int b, int r) {
 
 	// present
 	SDL_RenderPresent(renderer);
-	SDL_Delay(DELAY_TIME);
+	SDL_Delay(delay);
+
+}
+
+void pass_over(std::vector<int>& v, SDL_Renderer* renderer) {
+	for (int i = 1; i < COUNT; i++) {
+		draw(v, renderer, i, i + 1, 5);
+	}
+	for (int i = 1; i < COUNT; i++) {
+		draw(v, renderer, i, i + 1, 5);
+	}
+	for (int i = 1; i < COUNT; i++) {
+		draw(v, renderer, i, i + 1, 5);
+	}
+	draw(v, renderer, MAX_VAL+1, MAX_VAL+1);
 
 }
 
@@ -76,13 +90,14 @@ int main() {
 			v[j + 1] = v[j];
 			draw(v, renderer, j, j+1);
 			j = j - 1;
-
 			
 		}
 		v[j + 1] = val;
 		draw(v, renderer, MAX_VAL+1, MAX_VAL+1);
 	}
 
+	// do the funny pass over thing
+	pass_over(v, renderer);
 
 	SDL_Event event;
 	while (running) {
