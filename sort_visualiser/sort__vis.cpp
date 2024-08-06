@@ -116,15 +116,31 @@ void merge(std::vector<int>& v, int start, int mid, int end, SDL_AudioDeviceID a
 	}
 }
 
-void mergeSort(std::vector<int>& v, int l, int r, SDL_AudioDeviceID audio_dev, SDL_AudioSpec wav_spec, SDL_Renderer* renderer) {
+void merge_sort(std::vector<int>& v, int l, int r, SDL_AudioDeviceID audio_dev, SDL_AudioSpec wav_spec, SDL_Renderer* renderer) {
 	if (l < r) {
 		int m = l + (r - l) / 2;
 
-		mergeSort(v, l, m, audio_dev, wav_spec, renderer);
-		mergeSort(v, m + 1, r, audio_dev, wav_spec, renderer);
+		merge_sort(v, l, m, audio_dev, wav_spec, renderer);
+		merge_sort(v, m + 1, r, audio_dev, wav_spec, renderer);
 
 		merge(v, l, m, r, audio_dev, wav_spec, renderer);
 	}
+}
+
+void insertion_sort(std::vector<int>& v, SDL_AudioDeviceID audio_dev, SDL_AudioSpec wav_spec, SDL_Renderer* renderer) {
+	for (int i = 1; i < COUNT; i++) {
+		int val = v[i];
+		int j = i - 1;
+		while (j >= 0 && val < v[j]) {
+			v[j + 1] = v[j];
+			play_sound(audio_dev, wav_spec, v[j], v[j+1]);
+			draw(v, renderer, j, j+1);
+			j = j - 1;
+		
+		}
+		v[j + 1] = val;
+		draw(v, renderer, MAX_VAL+1, MAX_VAL+1);
+}
 }
 
 int main() {
@@ -170,22 +186,10 @@ int main() {
 	//play_sound(audio_dev, wav_spec, 90, 90);
 
 	// insertion sort
-	//for (int i = 1; i < COUNT; i++) {
-	//	int val = v[i];
-	//	int j = i - 1;
-	//	while (j >= 0 && val < v[j]) {
-	//		v[j + 1] = v[j];
-	//		play_sound(audio_dev, wav_spec, v[j], v[j+1]);
-	//		draw(v, renderer, j, j+1);
-	//		j = j - 1;
-	//		
-	//	}
-	//	v[j + 1] = val;
-	//	draw(v, renderer, MAX_VAL+1, MAX_VAL+1);
-	//}
+	//insertion_sort(v, audio_dev, wav_spec, renderer);
 
 	// in-place merge sort
-	mergeSort(v, 0, v.size() - 1, audio_dev, wav_spec, renderer);
+	merge_sort(v, 0, v.size() - 1, audio_dev, wav_spec, renderer);
 	
 
 	// do the funny pass over thing
