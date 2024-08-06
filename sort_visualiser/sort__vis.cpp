@@ -17,21 +17,6 @@
 #define MAX_FREQ 1500
 #define MIN_FREQ 100
 
-
-void audio_callback(void* userdata, Uint8* stream, int len); /*{
-	Sint16* buffer = (Sint16*)stream;
-	int length = len / 2;
-	TriangleWave* waves = (TriangleWave*)userdata;
-
-	for (int i = 0; i < length; i++) {
-		int sample = 0;
-		for (int j = 0; j < 2; j++) {
-			double value = (2.0 * waves[j])
-		}
-	}
-}*/
-
-
 float triangle_wave(float t, float frequency) {
 	float period = 1.0f / frequency;
 	float value = 4.0f * fabs(fmod(t, period) - period / 2) / period - 1.0f;
@@ -101,6 +86,47 @@ void pass_over(std::vector<int>& v, SDL_Renderer* renderer, SDL_AudioDeviceID au
 
 }
 
+void merge(std::vector<int>& v, int start, int mid, int end, SDL_AudioDeviceID audio_dev, SDL_AudioSpec wav_spec, SDL_Renderer* renderer) {
+	int start2 = mid + 1;
+
+	if (v[mid] <= v[start2]) {
+		return;
+	}
+
+	while (start <= mid && start2 <= end) {
+		if (v[start] <= v[start2]) {
+			start++;
+		}
+		else {
+			int value = v[start2];
+			int index = start2;
+
+			while (index != start) {
+				play_sound(audio_dev, wav_spec, v[index], v[index - 1]);
+				draw(v, renderer, index, index - 1);
+				v[index] = v[index - 1];
+				index--;
+			}
+			v[start] = value;
+
+			start++;
+			mid++;
+			start2++;
+		}
+	}
+}
+
+void mergeSort(std::vector<int>& v, int l, int r, SDL_AudioDeviceID audio_dev, SDL_AudioSpec wav_spec, SDL_Renderer* renderer) {
+	if (l < r) {
+		int m = l + (r - l) / 2;
+
+		mergeSort(v, l, m, audio_dev, wav_spec, renderer);
+		mergeSort(v, m + 1, r, audio_dev, wav_spec, renderer);
+
+		merge(v, l, m, r, audio_dev, wav_spec, renderer);
+	}
+}
+
 int main() {
 	std::random_device rd;
 	std::mt19937 gen(rd());
@@ -144,19 +170,23 @@ int main() {
 	//play_sound(audio_dev, wav_spec, 90, 90);
 
 	// insertion sort
-	for (int i = 1; i < COUNT; i++) {
-		int val = v[i];
-		int j = i - 1;
-		while (j >= 0 && val < v[j]) {
-			v[j + 1] = v[j];
-			play_sound(audio_dev, wav_spec, v[j], v[j+1]);
-			draw(v, renderer, j, j+1);
-			j = j - 1;
-			
-		}
-		v[j + 1] = val;
-		draw(v, renderer, MAX_VAL+1, MAX_VAL+1);
-	}
+	//for (int i = 1; i < COUNT; i++) {
+	//	int val = v[i];
+	//	int j = i - 1;
+	//	while (j >= 0 && val < v[j]) {
+	//		v[j + 1] = v[j];
+	//		play_sound(audio_dev, wav_spec, v[j], v[j+1]);
+	//		draw(v, renderer, j, j+1);
+	//		j = j - 1;
+	//		
+	//	}
+	//	v[j + 1] = val;
+	//	draw(v, renderer, MAX_VAL+1, MAX_VAL+1);
+	//}
+
+	// in-place merge sort
+	mergeSort(v, 0, v.size() - 1, audio_dev, wav_spec, renderer);
+	
 
 	// do the funny pass over thing
 	pass_over(v, renderer, audio_dev, wav_spec);
