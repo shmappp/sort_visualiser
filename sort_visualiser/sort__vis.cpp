@@ -7,8 +7,8 @@
 #include <math.h>
 
 #define MIN_VAL 1
-#define MAX_VAL 99
-#define COUNT 100
+#define MAX_VAL 200
+#define COUNT 200
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 #define DELAY_TIME 10
@@ -143,6 +143,37 @@ void insertion_sort(std::vector<int>& v, SDL_AudioDeviceID audio_dev, SDL_AudioS
 }
 }
 
+int partition(std::vector<int>& arr, int low, int high, SDL_AudioDeviceID audio_dev, SDL_AudioSpec wav_spec, SDL_Renderer* renderer) {
+
+	int pivot = arr[high];
+
+	int i = low - 1;
+
+	for (int j = low; j <= high - 1; j++) {
+		if (arr[j] < pivot) {
+			i++;
+			std::swap(arr[i], arr[j]);
+			play_sound(audio_dev, wav_spec, arr[i], arr[j]);
+			draw(arr, renderer, i, j);
+		}
+	}
+
+	std::swap(arr[i + 1], arr[high]);
+	play_sound(audio_dev, wav_spec, arr[i + 1], arr[high]);
+	draw(arr, renderer, i + 1, high);
+	return i + 1;
+}
+
+// The quick_sort function implementation
+void quick_sort(std::vector<int>& arr, int low, int high, SDL_AudioDeviceID audio_dev, SDL_AudioSpec wav_spec, SDL_Renderer* renderer) {
+
+	if (low < high) {
+		int pi = partition(arr, low, high, audio_dev, wav_spec, renderer);
+		quick_sort(arr, low, pi - 1, audio_dev, wav_spec, renderer);
+		quick_sort(arr, pi + 1, high, audio_dev, wav_spec, renderer);
+	}
+}
+
 int main() {
 	std::random_device rd;
 	std::mt19937 gen(rd());
@@ -181,7 +212,7 @@ int main() {
 	SDL_Window* window = nullptr;
 	SDL_Renderer* renderer = nullptr;
 	SDL_CreateWindowAndRenderer(WINDOW_WIDTH, WINDOW_HEIGHT, 0, &window, &renderer);
-	SDL_RenderSetScale(renderer, WINDOW_WIDTH / COUNT, WINDOW_HEIGHT / MAX_VAL); // throw error if we end up doing subpixel division
+	SDL_RenderSetScale(renderer, static_cast<float>(WINDOW_WIDTH) / static_cast<float>(COUNT), static_cast<float>(WINDOW_HEIGHT) / static_cast<float>(MAX_VAL)); // throw error if we end up doing subpixel division
 	//SDL_RenderSetLogicalSize(renderer, COUNT, MAX_VAL);
 	//play_sound(audio_dev, wav_spec, 90, 90);
 
@@ -189,7 +220,10 @@ int main() {
 	//insertion_sort(v, audio_dev, wav_spec, renderer);
 
 	// in-place merge sort
-	merge_sort(v, 0, v.size() - 1, audio_dev, wav_spec, renderer);
+	//merge_sort(v, 0, v.size() - 1, audio_dev, wav_spec, renderer);
+
+	// quick sort
+	quick_sort(v, 0, v.size() - 1, audio_dev, wav_spec, renderer);
 	
 
 	// do the funny pass over thing
